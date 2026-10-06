@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -25,6 +26,8 @@ public class MainApp extends Application {
     private ListView<Song> songListView;
 
     private Label libraryStatusLabel;
+    private Label songTitleLabel;
+    private Label songInfoLabel;
 
     @Override
     public void start(Stage stage) {
@@ -39,7 +42,11 @@ public class MainApp extends Application {
         root.setCenter(createMainContent());
         root.setBottom(createNextTrackBar());
 
-        Scene scene = new Scene(root, 1100, 700);
+        Scene scene = new Scene(
+                root,
+                1100,
+                700
+        );
 
         stage.setTitle("Auto DJ");
         stage.setMinWidth(900);
@@ -67,7 +74,8 @@ public class MainApp extends Application {
                 event -> importMusic(stage)
         );
 
-        Label libraryLabel = new Label("LIBRARY");
+        Label libraryLabel =
+                new Label("LIBRARY");
 
         libraryLabel.setStyle("""
                 -fx-font-size: 12px;
@@ -75,15 +83,28 @@ public class MainApp extends Application {
                 -fx-opacity: 0.65;
                 """);
 
-        songListView = new ListView<>();
+        songListView =
+                new ListView<>();
 
         songListView.setPlaceholder(
                 new Label("No songs imported")
         );
 
+        songListView
+                .getSelectionModel()
+                .selectedItemProperty()
+                .addListener(
+                        (observable, oldSong, newSong) -> {
+
+                            if (newSong != null) {
+                                showSelectedSong(newSong);
+                            }
+                        }
+                );
+
         VBox.setVgrow(
                 songListView,
-                javafx.scene.layout.Priority.ALWAYS
+                Priority.ALWAYS
         );
 
         libraryStatusLabel =
@@ -99,7 +120,10 @@ public class MainApp extends Application {
                 libraryStatusLabel
         );
 
-        sidebar.setPadding(new Insets(20));
+        sidebar.setPadding(
+                new Insets(20)
+        );
+
         sidebar.setPrefWidth(280);
 
         sidebar.setStyle("""
@@ -107,44 +131,6 @@ public class MainApp extends Application {
                 """);
 
         return sidebar;
-    }
-
-    private void importMusic(Stage stage) {
-
-        DirectoryChooser directoryChooser =
-                new DirectoryChooser();
-
-        directoryChooser.setTitle(
-                "Choose Music Folder"
-        );
-
-        File selectedDirectory =
-                directoryChooser.showDialog(stage);
-
-        if (selectedDirectory == null) {
-            return;
-        }
-
-        try {
-
-            List<Song> songs =
-                    musicLibraryService.scanDirectory(
-                            selectedDirectory.toPath()
-                    );
-
-            songListView.getItems().setAll(songs);
-
-            libraryStatusLabel.setText(
-                    songs.size() + " songs"
-            );
-
-        } catch (IOException exception) {
-
-            showError(
-                    "Unable to import music",
-                    exception.getMessage()
-            );
-        }
     }
 
     private VBox createMainContent() {
@@ -158,15 +144,15 @@ public class MainApp extends Application {
                 -fx-opacity: 0.65;
                 """);
 
-        Label songTitle =
+        songTitleLabel =
                 new Label("No song selected");
 
-        songTitle.setStyle("""
+        songTitleLabel.setStyle("""
                 -fx-font-size: 30px;
                 -fx-font-weight: bold;
                 """);
 
-        Label artistLabel =
+        songInfoLabel =
                 new Label(
                         "Choose a song from your library"
                 );
@@ -175,21 +161,29 @@ public class MainApp extends Application {
                 new Slider();
 
         progressSlider.setPrefWidth(500);
+        progressSlider.setDisable(true);
 
         Button playButton =
                 new Button("▶  Play");
 
+        playButton.setDisable(true);
+
         VBox content = new VBox(
                 20,
                 nowPlayingLabel,
-                songTitle,
-                artistLabel,
+                songTitleLabel,
+                songInfoLabel,
                 progressSlider,
                 playButton
         );
 
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(40));
+        content.setAlignment(
+                Pos.CENTER
+        );
+
+        content.setPadding(
+                new Insets(40)
+        );
 
         return content;
     }
@@ -217,7 +211,12 @@ public class MainApp extends Application {
         );
 
         bottom.setPadding(
-                new Insets(20, 30, 20, 30)
+                new Insets(
+                        20,
+                        30,
+                        20,
+                        30
+                )
         );
 
         bottom.setStyle("""
@@ -227,13 +226,68 @@ public class MainApp extends Application {
         return bottom;
     }
 
+    private void importMusic(Stage stage) {
+
+        DirectoryChooser directoryChooser =
+                new DirectoryChooser();
+
+        directoryChooser.setTitle(
+                "Choose Music Folder"
+        );
+
+        File selectedDirectory =
+                directoryChooser.showDialog(stage);
+
+        if (selectedDirectory == null) {
+            return;
+        }
+
+        try {
+
+            List<Song> songs =
+                    musicLibraryService.scanDirectory(
+                            selectedDirectory.toPath()
+                    );
+
+            songListView
+                    .getItems()
+                    .setAll(songs);
+
+            libraryStatusLabel.setText(
+                    songs.size() + " songs"
+            );
+
+        } catch (IOException exception) {
+
+            showError(
+                    "Unable to import music",
+                    exception.getMessage()
+            );
+        }
+    }
+
+    private void showSelectedSong(Song song) {
+
+        songTitleLabel.setText(
+                song.getTitle()
+        );
+
+        songInfoLabel.setText(
+                song.getExtension().toUpperCase()
+                        + " • "
+                        + song.getPath()
+        );
+    }
+
     private void showError(
             String title,
             String message
     ) {
 
         Alert alert =
-                new Alert(Alert.AlertType.ERROR);
+                new Alert(
+                        Alert.AlertType.ERROR
+                );
 
         alert.setTitle("Auto DJ");
         alert.setHeaderText(title);
